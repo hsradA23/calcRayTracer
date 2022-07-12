@@ -63,34 +63,52 @@ end
 
 
 function sphere:intersects(v)
-    d = cross(v,vec:new(self.x, self.y, self.z)):magnitude()/v:magnitude()
-    if d < self.r then
-        return true
+    --d = cross(v,vec:new(self.x, self.y, self.z)):magnitude()/v:magnitude()
+    c = vec:new(-self.x, -self.y, -self.z) -- center of the sphere
+    te = dot(c,v)
+    vv = dot(v,v)
+    d = te * te - vv * (dot(c,c) - self.r*self.r)
+    if d > 0 then
+        return -(2*te - math.sqrt(d))/(2*vv)
     else
-        return false
+        return -1
     end
 end
 
 
-s = sphere:new(0,0,600,30)
+function bgcolor(h)
+    v = (212-h)/212
+
+    return {
+        math.floor(149*v + 255*(1-v)),
+        math.floor(188*v + 255*(1-v)),
+        math.floor(245*v + 255*(1-v)),}
+    
+end
+
+
+s = sphere:new(0,0,600,50)
 t = vec:new(159,106,0)
 
 
-local b = Bitmap:new(318, 212)
-b:clear({255,255,255})
+local b = Bitmap:new(318, 212)                  -- Remove for calculator
+b:clear({255,255,255})                          -- Remove for calculator
 for px = 0, 318 do
     for py=0, 212 do
         pv = vec:new(px,py,400)
-        if s:intersects(pv-t) then
-            pcolor = {255,255,255}
+
+        dist = s:intersects(pv-t)
+        if  dist ~= -1 then
+            pcolor = {255,0,255}
+            
             --gc:setColorRGB(unpack(pcolor))
         else
-            pcolor = {0,0,0}
+            pcolor = bgcolor(py)
             --gc:setColorRGB(unpack(pcolor))
         end
         --gc:drawRect(px,py,0,0)
-        b:set(px,py,pcolor)
+        b:set(px,py,pcolor)                     -- Remove for calculator
     end
 end
 
-b:savePPM('p6.ppm')
+b:savePPM('p6.ppm')                             -- Remove for calculator
