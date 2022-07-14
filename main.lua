@@ -72,48 +72,76 @@ function sphere:intersects(v)
     if d > 0 then
         return (2*te - math.sqrt(d))/(2*vv)
     else
-        return -1
+        return nil
     end
 end
 
+-- Functions for the renderer
 
 function bgcolor(h)
+    -- The generates a linear gradient for the background
+    -- Starts from color1 at the top to color2 at the bottom
+    -- of the display
     v = (212-h)/212
+    color1 = {149, 188, 245}
+    color2 = {255, 255, 255}
     return {
-        math.floor(149*v + 255*(1-v)),
-        math.floor(188*v + 255*(1-v)),
-        math.floor(245*v + 255*(1-v)),}
+        math.floor(color1[1]*v + color2[1]*(1-v)),
+        math.floor(color1[2]*v + color2[2]*(1-v)),
+        math.floor(color1[3]*v + color2[3]*(1-v))}
+end
+
+function min_dist(objs, vec)
+    m = {dist = objs[1]:intersects(vec), obj = objs[1]}
+    for o = 2, #objs do
+        d = objs[o]:intersects(vec)
+        if d ~= nil and m.dist ~= nil and d<m.dist then
+            m = {dist = objs[o]:intersects(vec), obj = objs[o]}
+        elseif m.dist == nil and d ~= nil then 
+            m = {dist = objs[o]:intersects(vec), obj = objs[o]}
+        end
+    end
+    return m
 end
 
 
-s = sphere:new(vec:new(0,0,600),50)
-l = vec:new(-100,200,50)
+---------------------------------
+--- The main code starts here ---
+---------------------------------
+
+l = vec:new(0,250,500)
+
+objects = {
+    sphere:new(vec:new(70,-30,400), 50),
+    sphere:new(vec:new(-80,-30,600),50)
+}
 
 pixel_array = {}
 for px = 0, 318 do
     pixel_array[px] = {}
     for py=0, 212 do
         pv = vec:new(px - 159,-py + 106 ,400)
-        dist = s:intersects(pv)
-        if  dist ~= -1 then
+        
+        co = min_dist(objects, pv) -- closest object + the distance
+        dist = co.dist
+        if  dist ~= nil then
 
-            norm = dist*(pv) - s.vec ---# Normal vector to the sphere at the ray intersection
-            alp = (dot(norm:normalize(), (l-s.vec):normalize()))
+            norm = dist*(pv) - co.obj.vec ---# Normal vector to the sphere at the ray intersection
+            alp = (dot(norm:normalize(), (l-co.obj.vec):normalize()))
             if alp < 0 then
                 alp = 0
-            else 
-                alp = math.abs(alp)
             end
-            
+
             pcolor = {math.floor(255*alp),0,math.floor(255*alp)}
         else
             pcolor = bgcolor(py)
         end
-        pixel_array[px][py] = pcolor
+            pixel_array[px][py] = pcolor
     end
 end
 
-
+-- This makes the code be able to run on both the calculator
+-- and a lua interpreter, without having to edit anything
 if platform == nil then
     local bmp = require('b2m') 
     local b = Bitmap:new(318, 212)
