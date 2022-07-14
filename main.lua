@@ -58,7 +58,7 @@ end
 sphere = {}
 
 function sphere:new(v,rad)
-    newObj = {vec=v, r=rad}
+    newObj = {vec=v, r=rad,t=0}
     self.__index = self
     return setmetatable(newObj, self)
 end
@@ -75,6 +75,43 @@ function sphere:intersects(v)
         return nil
     end
 end
+
+function sphere:getNormalAt(v)
+    return v - self.vec
+end
+
+-- Plane Function
+plane = {}
+
+function plane:new(n,p)
+    newObj = {vec=n, point=p,t=1}
+    self.__index = self
+    return setmetatable(newObj, self)
+end
+
+function plane:intersects(v)
+    den = dot(v,self.vec)
+    num = dot(self.point,self.vec)
+
+    if den == 0 and num == 0 then
+        return 0 -- plane is parallel to the line, intersects
+    elseif den == 0 then
+        return nil -- plane is parallel to the line
+    else
+        d = num/den -- intersects
+        if d < 0 then -- cant be behind the camera
+            return  nil
+        else
+            return d 
+        end
+    end
+end
+
+function plane:getNormalAt(v)
+    return self.vec
+end
+
+
 
 -- Functions for the renderer
 
@@ -109,11 +146,12 @@ end
 --- The main code starts here ---
 ---------------------------------
 
-l = vec:new(0,250,500)
+l = vec:new(0,30,500)
 
 objects = {
+    plane:new(vec:new(0,1,0), vec:new(0,-30-50,0)),
     sphere:new(vec:new(70,-30,400), 50),
-    sphere:new(vec:new(-80,-30,600),50)
+    sphere:new(vec:new(-80,-30,600),50),
 }
 
 pixel_array = {}
@@ -124,10 +162,10 @@ for px = 0, 318 do
         
         co = min_dist(objects, pv) -- closest object + the distance
         dist = co.dist
-        if  dist ~= nil then
+        if  dist ~= nil and dist > 0 then
 
-            norm = dist*(pv) - co.obj.vec ---# Normal vector to the sphere at the ray intersection
-            alp = (dot(norm:normalize(), (l-co.obj.vec):normalize()))
+            norm = co.obj:getNormalAt(dist*(pv)) ---# Normal vector to the sphere at the ray intersection
+            alp = (dot(norm:normalize(), (l-dist*pv):normalize()))
             if alp < 0 then
                 alp = 0
             end
