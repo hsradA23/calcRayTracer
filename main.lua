@@ -1,6 +1,3 @@
-local bmp = require('b2m') 
-
-
 -- VECTOR FUNCTIONS
 vec = {}
 function vec:new(a,b,c)
@@ -57,7 +54,6 @@ function vec:normalize()
 end
 
 
-
 -- SPHERE FUNCTIONS
 sphere = {}
 
@@ -69,7 +65,6 @@ end
 
 
 function sphere:intersects(v)
-    --d = cross(v,vec:new(self.x, self.y, self.z)):magnitude()/v:magnitude()
     c = self.vec -- center of the sphere
     te = dot(c,v)
     vv = dot(v,v)
@@ -84,54 +79,58 @@ end
 
 function bgcolor(h)
     v = (212-h)/212
-
     return {
         math.floor(149*v + 255*(1-v)),
         math.floor(188*v + 255*(1-v)),
         math.floor(245*v + 255*(1-v)),}
-    
 end
 
 
 s = sphere:new(vec:new(0,0,600),50)
-t = vec:new(159,-106,0)
+l = vec:new(-100,200,50)
 
-l = vec:new(-300,400,50)
-
-
-
-
-local b = Bitmap:new(318, 212)                  -- Remove for calculator
-b:clear({255,255,255})                          -- Remove for calculator
+pixel_array = {}
 for px = 0, 318 do
+    pixel_array[px] = {}
     for py=0, 212 do
-        pv = vec:new(px,-py,400) - t
-
+        pv = vec:new(px - 159,-py + 106 ,400)
         dist = s:intersects(pv)
         if  dist ~= -1 then
 
-            norm = dist*(pv) - s.vec
-            --print(norm.x,norm.y,norm.z)
+            norm = dist*(pv) - s.vec ---# Normal vector to the sphere at the ray intersection
             alp = (dot(norm:normalize(), (l-s.vec):normalize()))
             if alp < 0 then
                 alp = 0
             else 
                 alp = math.abs(alp)
             end
-            --print(alp)
-
-            pcolor = {math.floor(255*alp),0,math.floor(255*alp)}
-
-
             
-            --gc:setColorRGB(unpack(pcolor))
+            pcolor = {math.floor(255*alp),0,math.floor(255*alp)}
         else
             pcolor = bgcolor(py)
-            --gc:setColorRGB(unpack(pcolor))
         end
-        --gc:drawRect(px,py,0,0)
-        b:set(px,py,pcolor)                     -- Remove for calculator
+        pixel_array[px][py] = pcolor
     end
 end
 
-b:savePPM('p6.ppm')                             -- Remove for calculator
+
+if platform == nil then
+    local bmp = require('b2m') 
+    local b = Bitmap:new(318, 212)
+    b:clear({255,255,255})
+    for i = 0,318 do
+        for j = 0,212 do
+            b:set(i,j,pixel_array[i][j])
+        end
+    end
+    b:savePPM('p6.ppm')
+else
+    function on.paint(gc)
+        for i = 0,318 do
+            for j = 0,212 do
+                gc:setColorRGB(unpack(pixel_array[i][j]))
+                gc:drawRect(i,j,0,0)
+            end
+        end
+    end
+end
