@@ -6,9 +6,9 @@ local floor = math.floor
 vec = {}
 function vec:new(a,b,c)
     if a == nil then
-        newObj = {x=0,y=0,z=0}
+        newObj = {0,0,0}
     else
-        newObj = {x=a,y=b,z=c}
+        newObj = {a,b,c}
     end
     self.__index = self
     return setmetatable(newObj, self)
@@ -16,45 +16,45 @@ end
 
 
 function vec.__add(v1, v2)
-    return vec:new(v1.x + v2.x, 
-    v1.y + v2.y,
-    v1.z + v2.z)
+    return vec:new(v1[1] + v2[1], 
+    v1[2] + v2[2],
+    v1[3] + v2[3])
 end
 
 function vec.__mul(v, v1)
-    return vec:new(v1.x * v, 
-    v1.y  * v,
-    v1.z  * v)
+    return vec:new(v1[1] * v, 
+    v1[2]  * v,
+    v1[3]  * v)
 end
 
 
 function vec.__sub(v1, v2)
-    return vec:new(v1.x - v2.x, 
-    v1.y - v2.y,
-    v1.z - v2.z)
+    return vec:new(v1[1] - v2[1], 
+    v1[2] - v2[2],
+    v1[3] - v2[3])
 end
 
 
 function dot(v1, v2)
-    return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z)
+    return (v1[1] * v2[1]) + (v1[2] * v2[2]) + (v1[3] * v2[3])
 end
 
 
 function cross(v1,v2)
     return vec:new(
-        (v1.y * v2.z)-(v2.y * v1.z),
-        (v2.x * v1.z)-(v1.x * v2.z),
-        (v1.x * v2.y)-(v2.x * v1.y)
+        (v1[2] * v2[3])-(v2[2] * v1[3]),
+        (v2[1] * v1[3])-(v1[1] * v2[3]),
+        (v1[1] * v2[2])-(v2[1] * v1[2])
     )
 end
 
 function vec:magnitude()
-    return sqrt(self.x^2 + self.y^2 + self.z^2 )
+    return sqrt(self[1]^2 + self[2]^2 + self[3]^2 )
 end
 
 function vec:normalize()
     m = self:magnitude()
-    return vec:new(self.x/m , self.y/m, self.z/m)
+    return vec:new(self[1]/m , self[2]/m, self[3]/m)
 end
 
 
@@ -101,6 +101,10 @@ function plane:new(n,p)
 end
 
 function plane:intersects(v, p)
+    -- If the plane intersects to a vector v passing through point p
+    -- returns the distance scalar to v
+    -- Otherwise returns nil (also returns nil if distance scalar is negative)
+    -- https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection
     num = dot(self.point - p ,self.vec)
     den = dot(v,self.vec)
 
@@ -171,6 +175,7 @@ objects = {
 
 pixel_array = {}
 function render()
+    imem = collectgarbage("count")
     for px = 0, 318 do
         pixel_array[px] = {}
         for py=0, 212 do
@@ -209,6 +214,8 @@ function render()
                 pixel_array[px][py] = pcolor
         end
     end
+    fmem = collectgarbage("count")
+    print(fmem-imem)
 end
 
 
