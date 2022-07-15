@@ -1,3 +1,7 @@
+-- Local functions are faster in lua
+local sqrt = math.sqrt
+local floor = math.floor
+
 -- VECTOR FUNCTIONS
 vec = {}
 function vec:new(a,b,c)
@@ -45,7 +49,7 @@ function cross(v1,v2)
 end
 
 function vec:magnitude()
-    return math.sqrt(self.x^2 + self.y^2 + self.z^2 )
+    return sqrt(self.x^2 + self.y^2 + self.z^2 )
 end
 
 function vec:normalize()
@@ -58,19 +62,24 @@ end
 sphere = {}
 
 function sphere:new(v,rad)
+    -- vec is a vector pointing to the center of the sphere
+    -- rad is the radius of the sphere
     newObj = {vec=v, r=rad,t=0}
     self.__index = self
     return setmetatable(newObj, self)
 end
 
 
-function sphere:intersects(v)
-    c = self.vec -- center of the sphere
-    te = dot(c,v)
+function sphere:intersects(v, p)
+    -- Returns nil if the sphere does not intersec a vector v passing through a point p
+    -- Otherwise, returns the distance d
+    -- https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
+    oc = p - self.vec
     vv = dot(v,v)
-    d = te * te - vv * (dot(c,c) - self.r*self.r)
-    if d > 0 then
-        return (2*te - math.sqrt(d))/(2*vv)
+    D = (2*dot(v,oc))^2 - 4 * vv * (dot(oc,oc) - self.r^2)
+    
+    if D > 0 then
+        return (-2*dot(v,oc) - sqrt(D))/(2*vv)
     else
         return nil
     end
@@ -84,14 +93,16 @@ end
 plane = {}
 
 function plane:new(n,p)
+    -- vec is the Normal vector to the plane
+    -- point is a point passing through the plane
     newObj = {vec=n, point=p,t=1}
     self.__index = self
     return setmetatable(newObj, self)
 end
 
-function plane:intersects(v)
+function plane:intersects(v, p)
+    num = dot(self.point - p ,self.vec)
     den = dot(v,self.vec)
-    num = dot(self.point,self.vec)
 
     if den == 0 and num == 0 then
         return 0 -- plane is parallel to the line, intersects
@@ -123,19 +134,23 @@ function bgcolor(h)
     color1 = {149, 188, 245}
     color2 = {255, 255, 255}
     return {
-        math.floor(color1[1]*v + color2[1]*(1-v)),
-        math.floor(color1[2]*v + color2[2]*(1-v)),
-        math.floor(color1[3]*v + color2[3]*(1-v))}
+        floor(color1[1]*v + color2[1]*(1-v)),
+        floor(color1[2]*v + color2[2]*(1-v)),
+        floor(color1[3]*v + color2[3]*(1-v))}
 end
 
 function min_dist(objs, vec)
-    m = {dist = objs[1]:intersects(vec), obj = objs[1]}
+    -- Given a list of objects, it finds the object that is closest
+    -- to the vector assuming it starts from the origin.
+    -- Performs a simple linear scan.
+    origin = vec:new()
+    m = {dist = objs[1]:intersects(vec, origin), obj = objs[1]}
     for o = 2, #objs do
-        d = objs[o]:intersects(vec)
+        d = objs[o]:intersects(vec, origin)
         if d ~= nil and m.dist ~= nil and d<m.dist then
-            m = {dist = objs[o]:intersects(vec), obj = objs[o]}
+            m = {dist = objs[o]:intersects(vec, origin), obj = objs[o]}
         elseif m.dist == nil and d ~= nil then 
-            m = {dist = objs[o]:intersects(vec), obj = objs[o]}
+            m = {dist = objs[o]:intersects(vec, origin), obj = objs[o]}
         end
     end
     return m
@@ -146,7 +161,7 @@ end
 --- The main code starts here ---
 ---------------------------------
 
-l = vec:new(0,30,500)
+l = vec:new(-10,30,450)
 
 objects = {
     plane:new(vec:new(0,1,0), vec:new(0,-30-50,0)),
@@ -155,28 +170,49 @@ objects = {
 }
 
 pixel_array = {}
-for px = 0, 318 do
-    pixel_array[px] = {}
-    for py=0, 212 do
-        pv = vec:new(px - 159,-py + 106 ,400)
-        
-        co = min_dist(objects, pv) -- closest object + the distance
-        dist = co.dist
-        if  dist ~= nil and dist > 0 then
+function render()
+    for px = 0, 318 do
+        pixel_array[px] = {}
+        for py=0, 212 do
+            -- pv is the pixel vector, it points from the origin to the pixel
+            pv = vec:new(px - 159,-py + 106 ,400)
+            
+            co = min_dist(objects, pv) -- closest object + the distance
+            dist = co.dist
+            if  dist ~= nil and dist > 0 then
+                is = dist*(pv) -- Point of intersection of the ray
+                norm = co.obj:getNormalAt(is) ---# Normal vector to the object at the ray intersection
 
-            norm = co.obj:getNormalAt(dist*(pv)) ---# Normal vector to the sphere at the ray intersection
-            alp = (dot(norm:normalize(), (l-dist*pv):normalize()))
-            if alp < 0 then
-                alp = 0
+                alp = (dot(norm:normalize(), (l-dist*pv):normalize())) -- Lambert's cosine law
+
+                -- Check if any object casts a shadow
+                ill = true
+                for os=1,#objects do
+                    if objects[os]:intersects(l-is,l) ~= nil and objects[os] ~= co.obj then
+                        ill = false
+                    end
+                end
+
+                if not ill then
+                    alp = alp * 0.5
+                end
+
+
+                if alp < 0 then
+                    alp = 0
+                end
+
+                pcolor = {floor(255*alp),0,floor(255*alp)}
+            else
+                pcolor = bgcolor(py)
             end
-
-            pcolor = {math.floor(255*alp),0,math.floor(255*alp)}
-        else
-            pcolor = bgcolor(py)
+                pixel_array[px][py] = pcolor
         end
-            pixel_array[px][py] = pcolor
     end
 end
+
+
+render()
 
 -- This makes the code be able to run on both the calculator
 -- and a lua interpreter, without having to edit anything
