@@ -1,8 +1,9 @@
 -- Local functions are faster in lua
+-- so we import them
 local sqrt = math.sqrt
 local floor = math.floor
 
--- VECTOR FUNCTIONS
+-- VECTOR CLASS FUNCTIONS
 vec = {}
 function vec:new(a,b,c)
     if a == nil then
@@ -57,14 +58,24 @@ function vec:normalize()
     return vec:new(self[1]/m , self[2]/m, self[3]/m)
 end
 
+function vec:fixColor()
+    -- I store colors as vectors
+    -- this function converts floats to integers
+    self[1] = floor(self[1])
+    self[2] = floor(self[2])
+    self[3] = floor(self[3])
+end
 
--- SPHERE FUNCTIONS
+
+
+-- SPHERE CLASS FUNCTIONS
 sphere = {}
 
-function sphere:new(v,rad)
+function sphere:new(v,rad,c)
     -- vec is a vector pointing to the center of the sphere
     -- rad is the radius of the sphere
-    newObj = {vec=v, r=rad,t=0}
+    -- col is the color (stored as a vector cause it saves memory lol)
+    newObj = {vec=v, r=rad,col=c}
     self.__index = self
     return setmetatable(newObj, self)
 end
@@ -89,13 +100,14 @@ function sphere:getNormalAt(v)
     return v - self.vec
 end
 
--- Plane Function
+-- PLANE CLASS FUNCTIONS
 plane = {}
 
-function plane:new(n,p)
+function plane:new(n,p,c)
     -- vec is the Normal vector to the plane
     -- point is a point passing through the plane
-    newObj = {vec=n, point=p,t=1}
+    -- col is the color (stored as a vector)
+    newObj = {vec=n, point=p,col=c}
     self.__index = self
     return setmetatable(newObj, self)
 end
@@ -168,15 +180,18 @@ end
 l = vec:new(-10,30,450)
 
 objects = {
-    plane:new(vec:new(0,1,0), vec:new(0,-30-50,0)),
-    sphere:new(vec:new(70,-30,400), 50),
-    sphere:new(vec:new(-80,-30,600),50),
+    plane:new(vec:new(0,1,0), vec:new(0,-30-50,0), vec:new(217, 214, 139)),
+    sphere:new(vec:new(90,-30,400), 50, vec:new(255,255,255)),
+    sphere:new(vec:new(-80,-30,600),50, vec:new(255,255,255)),
 }
 
 pixel_array = {}
 function render()
     imem = collectgarbage("count")
     for px = 0, 318 do
+        if px % 2 == 0 then
+            collectgarbage("collect")
+        end
         pixel_array[px] = {}
         for py=0, 212 do
             -- pv is the pixel vector, it points from the origin to the pixel
@@ -207,7 +222,8 @@ function render()
                     alp = 0
                 end
 
-                pcolor = {floor(255*alp),0,floor(255*alp)}
+                pcolor = alp*co.obj.col
+                pcolor:fixColor()
             else
                 pcolor = bgcolor(py)
             end
@@ -215,7 +231,7 @@ function render()
         end
     end
     fmem = collectgarbage("count")
-    print(fmem-imem)
+    print(imem, fmem, fmem-imem)
 end
 
 
