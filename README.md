@@ -6,7 +6,7 @@ A ray tracer written in lua for the Ti Nspire CX - II
 The scene has to be edited by changing the source code. The default example has 2 spheres placed on a plane, illuminated by
 a point source of light above them.
 
-![1abfc18a-9087-42c7-9f3c-534679c5c44b](https://user-images.githubusercontent.com/86849857/227121781-530733a9-e856-48a6-a493-70c93dfb02ed.jpeg)
+![1abfc18a-9087-42c7-9f3c-534679c5c44b|50%](https://user-images.githubusercontent.com/86849857/227121781-530733a9-e856-48a6-a493-70c93dfb02ed.jpeg)
 
 the `objects` global variable contains a list of all the objects present in the scene. Each object has its own properties,
 described in the beginning of each class decleration.
